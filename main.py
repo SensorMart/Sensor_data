@@ -3,7 +3,6 @@ import serial
 import threading
 import logging
 import time
-import os
 from logger_config import setup_logging , log_file_completion
 from api.link_to_api import send_data_to_fast_api
 from datetime import datetime
@@ -22,7 +21,7 @@ write_confirm = False
 ser = serial.Serial(COM_PORT, BAUD_RATE)
 stop_event = threading.Event()
 
-highest_srno = 29999
+highest_srno = 30000
 
 file_counter = 1
 
@@ -49,10 +48,14 @@ def read_data():
                         buffer1.append(f"SRNO:{SerialNo},X:{x},Y:{y},Z:{z}")
                     else:
                         buffer2.append(f"SRNO:{SerialNo},X:{x},Y:{y},Z:{z}")
-                        
+
+                     # Send data to API immediately
+                    send_data_to_fast_api([f"SRNO:{SerialNo},X:{x},Y:{y},Z:{z}"])
+
                     with lock:
-                        res1 = SerialNo % highest_srno
-                        if res1 == 0:  
+                        # response_active_buffer = SerialNo % highest_srno
+                        response_active_buffer = SerialNo % highest_srno
+                        if response_active_buffer == 0:  
                             if SerialNo >= highest_srno:    
                                 text_file_name = get_new_txt_filename()
                                 switch_buffers()
@@ -75,7 +78,7 @@ def switch_buffers():
         active_buffer = 0
 
 def write_data_to_file():
-    global text_file_name,buffer1,buffer2,buffer_size_limit,write_confirm
+    global text_file_name,buffer1,buffer2,write_confirm
 
     while not stop_event.is_set():
         time.sleep(1)
@@ -87,16 +90,15 @@ def write_data_to_file():
                             for line in buffer1:
                                 f.write(line + '\n')
                         f.close()
-                        send_data_to_fast_api(buffer1)
+                        # send_data_to_fast_api(buffer1)
                         buffer1.clear()
                     else:
                         with open(text_file_name, 'a') as f:#it wil write the file
                             for line in buffer2:
                                 f.write(line + '\n')
                         f.close()
-                        send_data_to_fast_api(buffer2)
-                        buffer2.clear()
-                    #f.write(line + '\n')    
+                        # send_data_to_fast_api(buffer2)
+                        buffer2.clear()   
 
                     log_file_completion(text_file_name, "completed")  
                     write_confirm = False

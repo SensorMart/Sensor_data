@@ -3,7 +3,6 @@ import logging
 
 #fast api endpoint 
 API_ENDPOINTS = 'http://192.168.31.104:8000/data/'
-
 #function to send the data to the api
 def send_data_to_fast_api(buffer):
     for line in buffer:
