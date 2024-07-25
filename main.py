@@ -3,6 +3,11 @@ import serial
 import threading
 import logging
 import time
+import os
+from logger_config import setup_logging , log_file_completion
+from api.link_to_api import send_data_to_fast_api
+from datetime import datetime
+ 
 
 # buffer_size_limit = 200
 buffer1 = []
@@ -12,19 +17,21 @@ active_buffer = 0
 lock = threading.Lock() #locking particular thread to stop the interfarence of another thread in between first thread
 write_confirm = False
 
-text_file_counter = 1
-text_file_prefix = 'data'
-text_file_name =f"{text_file_prefix}_{text_file_counter}.txt"
+
 
 ser = serial.Serial(COM_PORT, BAUD_RATE)
 stop_event = threading.Event()
 
-highest_srno = 100
+highest_srno = 29999
+
+file_counter = 1
 
 def get_new_txt_filename():
-    global text_file_counter
-    filename = f"{text_file_prefix}_{text_file_counter}.txt"
-    text_file_counter += 1
+    global file_counter
+    current_time = datetime.now()
+    formatted_time = current_time.strftime("%Y%m%d-%H%M%S")  # Format as YYYY-MM-DD_HH-MM-SS
+    filename = f"{formatted_time}.txt"
+    file_counter += 1
     return filename
 
 def read_data():
@@ -73,7 +80,6 @@ def write_data_to_file():
     while not stop_event.is_set():
         time.sleep(1)
         if write_confirm == True:
-
             with lock:
                 try: 
                     if active_buffer == 1:
@@ -81,20 +87,28 @@ def write_data_to_file():
                             for line in buffer1:
                                 f.write(line + '\n')
                         f.close()
+                        send_data_to_fast_api(buffer1)
                         buffer1.clear()
                     else:
                         with open(text_file_name, 'a') as f:#it wil write the file
                             for line in buffer2:
                                 f.write(line + '\n')
                         f.close()
+                        send_data_to_fast_api(buffer2)
                         buffer2.clear()
-                    #f.write(line + '\n')      
-                        write_confirm = False
+                    #f.write(line + '\n')    
+
+                    log_file_completion(text_file_name, "completed")  
+                    write_confirm = False
                 except IOError as e:
                     logging.error(f"File error: {e}")
+                    log_file_completion(text_file_name, f"failed: {e}")
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
+   
+    setup_logging
+
+    # logging.basicConfig(level=logging.ERROR, format='%(asctime)s - %(levelname)s - %(message)s')
 
     read_thread = threading.Thread(target= read_data)
     write_thread = threading.Thread(target=write_data_to_file)
