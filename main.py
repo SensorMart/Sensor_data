@@ -3,6 +3,7 @@ import serial
 import threading
 import logging
 import time
+from api.link_to_api import send_data_to_fast_api
 
 # buffer_size_limit = 200
 buffer1 = []
@@ -19,7 +20,7 @@ text_file_name =f"{text_file_prefix}_{text_file_counter}.txt"
 ser = serial.Serial(COM_PORT, BAUD_RATE)
 stop_event = threading.Event()
 
-highest_srno = 100
+highest_srno = 2000
 
 def get_new_txt_filename():
     global text_file_counter
@@ -79,14 +80,16 @@ def write_data_to_file():
                     if active_buffer == 1:
                         with open(text_file_name, 'a') as f:#it wil write the file
                             for line in buffer1:
-                                f.write(line + '\n')
+                                f.write(line + '\n')      
                         f.close()
+                        send_data_to_fast_api(buffer1)
                         buffer1.clear()
                     else:
                         with open(text_file_name, 'a') as f:#it wil write the file
                             for line in buffer2:
-                                f.write(line + '\n')
+                                f.write(line + '\n')       
                         f.close()
+                        send_data_to_fast_api(buffer2)
                         buffer2.clear()
                     #f.write(line + '\n')      
                         write_confirm = False
@@ -104,7 +107,7 @@ if __name__ == "__main__":
     read_thread.start()
     
     try:
-        read_thread.join()
+        #read_thread.join()
         read_thread.join()
         write_thread.join()
     except KeyboardInterrupt:
