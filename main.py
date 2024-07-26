@@ -4,7 +4,7 @@ import threading
 import logging
 import time
 from logger_config import setup_logging , log_file_completion
-from api.link_to_api import send_data_to_fast_api
+from api.link_to_api import send_data,send_data_via_Websocket
 from datetime import datetime
  
 
@@ -50,7 +50,8 @@ def read_data():
                         buffer2.append(f"SRNO:{SerialNo},X:{x},Y:{y},Z:{z}")
 
                      # Send data to API immediately
-                    send_data_to_fast_api([f"SRNO:{SerialNo},X:{x},Y:{y},Z:{z}"])
+                    send_data([f"SRNO:{SerialNo},X:{x},Y:{y},Z:{z}"])
+                    send_data_via_Websocket([f"SRNO:{SerialNo},X:{x},Y:{y},Z:{z}"])
 
                     with lock:
                         # response_active_buffer = SerialNo % highest_srno
